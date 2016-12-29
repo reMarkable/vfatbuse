@@ -73,19 +73,16 @@ int hdimage_open_file(const char *pathname, int flags, Bit64u *fsize, time_t *mt
     return fd;
   }
 
-#ifndef WIN32
   if (fsize != NULL) {
     struct stat stat_buf;
     if (fstat(fd, &stat_buf)) {
       printf("fstat() returns error!");
       return -1;
     }
-#ifdef linux
     if (S_ISBLK(stat_buf.st_mode)) { // Is this a special device file (e.g. /dev/sde) ?
       ioctl(fd, BLKGETSIZE64, fsize); // yes it's!
     }
     else
-#endif
     {
       *fsize = (Bit64u)stat_buf.st_size; // standard unix procedure to get size of regular files
     }
@@ -93,7 +90,6 @@ int hdimage_open_file(const char *pathname, int flags, Bit64u *fsize, time_t *mt
       *mtime = stat_buf.st_mtime;
     }
   }
-#endif
   return fd;
 }
 
@@ -289,11 +285,7 @@ int redolog_t::open(const char* filename, const char *type)
 int redolog_t::open(const char* filename, const char *type, int flags)
 {
   Bit64u imgsize = 0;
-#ifndef WIN32
   time_t mtime;
-#else
-  FILETIME mtime;
-#endif
 
   fd = hdimage_open_file(filename, flags, &imgsize, &mtime);
   if (fd < 0) {
@@ -678,20 +670,12 @@ Bit16u fat_datetime(time_t time, int return_time)
 // portable mkdir / rmdir
 static int bx_mkdir(const char *path)
 {
-#ifndef WIN32
   return mkdir(path, 0755);
-#else
-  return (CreateDirectory(path, NULL) != 0) ? 0 : -1;
-#endif
 }
 
 static int bx_rmdir(const char *path)
 {
-#ifndef WIN32
   return rmdir(path);
-#else
-  return (RemoveDirectory(path) != 0) ? 0 : -1;
-#endif
 }
 
 // dynamic array functions
@@ -796,43 +780,7 @@ static inline int array_roll(array_t* array, int index_to, int index_from, int c
   return 0;
 }
 
-#if 0
-static inline int array_remove_slice(array_t* array,int index, int count)
-{
-  assert(index >=0);
-  assert(count > 0);
-  assert(index + count <= (int)array->next);
-  if (array_roll(array,array->next-1,index,count))
-    return -1;
-  array->next -= count;
-  return 0;
-}
-
-static int array_remove(array_t* array,int index)
-{
-  return array_remove_slice(array, index, 1);
-}
-
-// return the index for a given member
-static int array_index(array_t* array, void* pointer)
-{
-  size_t offset = (char*)pointer - array->pointer;
-  assert((offset % array->item_size) == 0);
-  assert(offset/array->item_size < array->next);
-  return offset/array->item_size;
-}
-#endif
-
-#if defined(_MSC_VER)
-#pragma pack(push, 1)
-#elif defined(__MWERKS__) && defined(macintosh)
-#pragma options align=packed
-#endif
-
 typedef
-#if defined(_MSC_VER) && (_MSC_VER>=1300)
-  __declspec(align(1))
-#endif
   struct bootsector_t {
     Bit8u  jump[3];
     Bit8u  name[8];
@@ -849,9 +797,6 @@ typedef
     Bit32u hidden_sectors;
     Bit32u total_sectors;
     union {
-#if defined(_MSC_VER) && (_MSC_VER>=1300)
-      __declspec(align(1))
-#endif
       struct {
         Bit8u  drive_number;
         Bit8u  reserved;
@@ -860,14 +805,8 @@ typedef
         Bit8u  volume_label[11];
         Bit8u fat_type[8];
         Bit8u ignored[0x1c0];
-      }
-#if !defined(_MSC_VER)
-__attribute__ ((packed))
-#endif
+      } __attribute__ ((packed))
       fat16;
-#if defined(_MSC_VER) && (_MSC_VER>=1300)
-    __declspec(align(1))
-#endif
     struct {
         Bit32u sectors_per_fat;
         Bit16u flags;
@@ -883,23 +822,14 @@ __attribute__ ((packed))
         Bit8u  volume_label[11];
         Bit8u  fat_type[8];
         Bit8u  ignored[0x1a4];
-    }
-#if !defined(_MSC_VER)
-__attribute__ ((packed))
-#endif
+    } __attribute__ ((packed))
     fat32;
     } u;
     Bit8u magic[2];
-}
-#if !defined(_MSC_VER)
-__attribute__ ((packed))
-#endif
+} __attribute__ ((packed))
 bootsector_t;
 
 typedef
-#if defined(_MSC_VER) && (_MSC_VER>=1300)
-  __declspec(align(1))
-#endif
   struct partition_t {
     Bit8u     attributes; /* 0x80 = bootable */
     mbr_chs_t start_CHS;
@@ -907,32 +837,20 @@ typedef
     mbr_chs_t end_CHS;
     Bit32u    start_sector_long;
     Bit32u    length_sector_long;
-}
-#if !defined(_MSC_VER)
-__attribute__ ((packed))
-#endif
+} __attribute__ ((packed))
 partition_t;
 
 typedef
-#if defined(_MSC_VER) && (_MSC_VER>=1300)
-  __declspec(align(1))
-#endif
   struct mbr_t {
     Bit8u       ignored[0x1b8];
     Bit32u      nt_id;
     Bit8u       ignored2[2];
     partition_t partition[4];
     Bit8u       magic[2];
-}
-#if !defined(_MSC_VER)
-__attribute__ ((packed))
-#endif
+} __attribute__ ((packed))
 mbr_t;
 
 typedef
-#if defined(_MSC_VER) && (_MSC_VER>=1300)
-  __declspec(align(1))
-#endif
   struct infosector_t {
     Bit32u signature1;
     Bit8u  ignored[0x1e0];
@@ -941,17 +859,8 @@ typedef
     Bit32u mra_cluster; // most recently allocated cluster
     Bit8u  reserved[14];
     Bit8u  magic[2];
-}
-#if !defined(_MSC_VER)
-__attribute__ ((packed))
-#endif
+} __attribute__ ((packed))
 infosector_t;
-
-#if defined(_MSC_VER)
-#pragma pack(pop)
-#elif defined(__MWERKS__) && defined(macintosh)
-#pragma options align=reset
-#endif
 
 vvfat_image_t::vvfat_image_t(Bit64u size, const char* _redolog_name)
 {
@@ -1253,7 +1162,6 @@ int vvfat_image_t::read_directory(int mapping_index)
   int first_cluster_of_parent = parent_mapping ? (int)parent_mapping->begin : -1;
   int count = 0;
 
-#ifndef WIN32
   DIR* dir = opendir(dirname);
   struct dirent* entry;
   int i;
@@ -1364,110 +1272,6 @@ int vvfat_image_t::read_directory(int mapping_index)
     }
   }
   closedir(dir);
-#else
-  WIN32_FIND_DATA finddata;
-  char filter[MAX_PATH];
-  wsprintf(filter, "%s\\*.*", dirname);
-  HANDLE hFind = FindFirstFile(filter, &finddata);
-  int i;
-
-  assert(mapping->mode & MODE_DIRECTORY);
-
-  if (hFind == INVALID_HANDLE_VALUE) {
-    mapping->end = mapping->begin;
-    return -1;
-  }
-
-  i = mapping->info.dir.first_dir_index =
-    first_cluster == first_cluster_of_root_dir ? 0 : directory.next;
-
-  if (first_cluster != first_cluster_of_root_dir) {
-    // create the top entries of a subdirectory
-    direntry = create_short_and_long_name(i, ".", 1);
-    direntry = create_short_and_long_name(i, "..", 1);
-  }
-
-  // actually read the directory, and allocate the mappings
-  do {
-    if ((first_cluster == 0) && (directory.next >= (Bit16u)(root_entries - 1))) {
-      printf("Too many entries in root directory, using only %d", count);
-      FindClose(hFind);
-      return -2;
-    }
-    unsigned int length = lstrlen(dirname) + 2 + lstrlen(finddata.cFileName);
-    char* buffer;
-    direntry_t* direntry;
-    bx_bool is_dot = !lstrcmp(finddata.cFileName, ".");
-    bx_bool is_dotdot = !lstrcmp(finddata.cFileName, "..");
-    if ((first_cluster == first_cluster_of_root_dir) && (is_dotdot || is_dot))
-      continue;
-    bx_bool is_mbr_file = !lstrcmp(finddata.cFileName, VVFAT_MBR);
-    bx_bool is_boot_file = !lstrcmp(finddata.cFileName, VVFAT_BOOT);
-    bx_bool is_attr_file = !lstrcmp(finddata.cFileName, VVFAT_ATTR);
-    if (first_cluster == first_cluster_of_root_dir) {
-      if (is_attr_file || ((is_mbr_file || is_boot_file) && (finddata.nFileSizeLow == 512)))
-        continue;
-    }
-
-    buffer = (char*)malloc(length);
-    snprintf(buffer, length, "%s/%s", dirname, finddata.cFileName);
-
-    count++;
-    // create directory entry for this file
-    if (!is_dot && !is_dotdot) {
-      direntry = create_short_and_long_name(i, finddata.cFileName, 0);
-    } else {
-      direntry = (direntry_t*)array_get(&directory, is_dot ? i : i + 1);
-    }
-    direntry->attributes = ((finddata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? 0x10 : 0x20);
-    direntry->reserved[0] = direntry->reserved[1]=0;
-    direntry->ctime = fat_datetime(finddata.ftCreationTime, 1);
-    direntry->cdate = fat_datetime(finddata.ftCreationTime, 0);
-    direntry->adate = fat_datetime(finddata.ftLastAccessTime, 0);
-    direntry->begin_hi = 0;
-    direntry->mtime = fat_datetime(finddata.ftLastWriteTime, 1);
-    direntry->mdate = fat_datetime(finddata.ftLastWriteTime, 0);
-    if (is_dotdot)
-      set_begin_of_direntry(direntry, first_cluster_of_parent);
-    else if (is_dot)
-      set_begin_of_direntry(direntry, first_cluster);
-    else
-      direntry->begin = 0; // do that later
-    if (finddata.nFileSizeLow > 0x7fffffff) {
-      printf("File '%s' is larger than 2GB", buffer);
-      free(buffer);
-      FindClose(hFind);
-      return -3;
-    }
-    direntry->size = htod32((finddata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? 0:finddata.nFileSizeLow);
-
-    // create mapping for this file
-    if (!is_dot && !is_dotdot && ((finddata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) || finddata.nFileSizeLow)) {
-      current_mapping = (mapping_t*)array_get_next(&this->mapping);
-      current_mapping->begin = 0;
-      current_mapping->end = finddata.nFileSizeLow;
-      /*
-       * we get the direntry of the most recent direntry, which
-       * contains the short name and all the relevant information.
-       */
-      current_mapping->dir_index = directory.next-1;
-      current_mapping->first_mapping_index = -1;
-      if (finddata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-        current_mapping->mode = MODE_DIRECTORY;
-        current_mapping->info.dir.parent_mapping_index =
-          mapping_index;
-      } else {
-        current_mapping->mode = MODE_UNDEFINED;
-        current_mapping->info.file.offset = 0;
-      }
-      current_mapping->path = buffer;
-      current_mapping->read_only = (finddata.dwFileAttributes & FILE_ATTRIBUTE_READONLY);
-    } else {
-      free(buffer);
-    }
-  } while (FindNextFile(hFind, &finddata));
-  FindClose(hFind);
-#endif
 
   // fill with zeroes up to the end of the cluster
   while (directory.next % (0x10 * sectors_per_cluster)) {
@@ -1973,10 +1777,8 @@ int vvfat_image_t::open(const char* dirname)
     return -1;
   }
 
-#if (!defined(WIN32)) && !BX_WITH_MACOS
   // on unix it is legal to delete an open file
   unlink(redolog_temp);
-#endif
 
   vvfat_modified = 0;
   vvfat_count++;
@@ -2065,14 +1867,8 @@ bx_bool vvfat_image_t::write_file(const char *path, direntry_t *entry, bx_bool c
   Bit32u csize, fsize, fstart, cur, next, rsvd_clusters, bad_cluster;
   Bit64u offset;
   Bit8u *buffer = NULL;
-#ifndef WIN32
   struct tm tv;
   struct utimbuf ut;
-#else
-  HANDLE hFile;
-  FILETIME at, mt, tmp;
-  SYSTEMTIME st;
-#endif
 
   csize = sectors_per_cluster * 0x200;
   rsvd_clusters = max_fat_value - 15;
@@ -2120,7 +1916,6 @@ bx_bool vvfat_image_t::write_file(const char *path, direntry_t *entry, bx_bool c
   } while (next < rsvd_clusters);
   ::close(fd);
 
-#ifndef WIN32
   tv.tm_year = (entry->mdate >> 9) + 80;
   tv.tm_mon = ((entry->mdate >> 5) & 0x0f) - 1;
   tv.tm_mday = entry->mdate & 0x1f;
@@ -2141,34 +1936,6 @@ bx_bool vvfat_image_t::write_file(const char *path, direntry_t *entry, bx_bool c
     ut.actime = ut.modtime;
   }
   utime(path, &ut);
-#else
-  hFile = CreateFile(path, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-  if (hFile != INVALID_HANDLE_VALUE) {
-    memset(&st, 0, sizeof(st));
-    st.wYear = (entry->mdate >> 9) + 1980;
-    st.wMonth = ((entry->mdate >> 5) & 0x0f);
-    st.wDay = entry->mdate & 0x1f;
-    st.wHour = (entry->mtime >> 11);
-    st.wMinute = (entry->mtime >> 5) & 0x3f;
-    st.wSecond = (entry->mtime & 0x1f) << 1;
-    SystemTimeToFileTime(&st, &tmp);
-    LocalFileTimeToFileTime(&tmp, &mt);
-    if (entry->adate != 0) {
-      st.wYear = (entry->adate >> 9) + 1980;
-      st.wMonth = ((entry->adate >> 5) & 0x0f);
-      st.wDay = entry->adate & 0x1f;
-      st.wHour = 0;
-      st.wMinute = 0;
-      st.wSecond = 0;
-      SystemTimeToFileTime(&st, &tmp);
-      LocalFileTimeToFileTime(&tmp, &at);
-    } else {
-      at = mt;
-    }
-    SetFileTime(hFile, NULL, &at, &mt);
-    CloseHandle(hFile);
-  }
-#endif
   if(buffer)
     free(buffer);
   return 1;
@@ -2358,10 +2125,6 @@ void vvfat_image_t::close(void)
 
   redolog->close();
 
-#if defined(WIN32) || BX_WITH_MACOS
-  // on non-unix we have to wait till the file is closed to delete it
-  unlink(redolog_temp);
-#endif
   if (redolog_temp!=NULL)
     free(redolog_temp);
 

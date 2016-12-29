@@ -94,16 +94,7 @@ typedef struct {
   Bit8u cylinder;
 } mbr_chs_t;
 
-#if defined(_MSC_VER) && (_MSC_VER<1300)
-#pragma pack(push, 1)
-#elif defined(__MWERKS__) && defined(macintosh)
-#pragma options align=packed
-#endif
-
 typedef
-#if defined(_MSC_VER) && (_MSC_VER>=1300)
-  __declspec(align(1))
-#endif
   struct direntry_t {
     Bit8u name[8];
     Bit8u extension[3];
@@ -117,17 +108,8 @@ typedef
     Bit16u mdate;
     Bit16u begin;
     Bit32u size;
-}
-#if !defined(_MSC_VER)
-__attribute__ ((packed))
-#endif
+} __attribute__ ((packed))
 direntry_t;
-
-#if defined(_MSC_VER) && (_MSC_VER<1300)
-#pragma pack(pop)
-#elif defined(__MWERKS__) && defined(macintosh)
-#pragma options align=reset
-#endif
 
 // this structure are used to transparently access the files
 
