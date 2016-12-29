@@ -1783,7 +1783,7 @@ void vvfat_image_t::set_file_attributes(void)
   }
 }
 
-int vvfat_image_t::open(const char* dirname, int flags)
+int vvfat_image_t::open(const char* dirname)
 {
   Bit32u size_in_mb;
   char path[BX_PATHNAME_LEN];
@@ -1792,8 +1792,6 @@ int vvfat_image_t::open(const char* dirname, int flags)
   const char *logname = NULL;
   char ftype[10];
   bx_bool ftype_ok;
-
-  (void)(flags);
 
   use_mbr_file = 0;
   use_boot_file = 0;

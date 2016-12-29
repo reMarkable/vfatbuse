@@ -268,12 +268,13 @@ class vvfat_image_t// : public device_image_t
     vvfat_image_t(Bit64u size, const char* redolog_name);
     virtual ~vvfat_image_t();
 
-    int open(const char* pathname, int flags);
+    int open(const char* pathname);
     void close();
     Bit64s lseek(Bit64s offset, int whence);
     ssize_t read(void* buf, size_t count);
     ssize_t write(const void* buf, size_t count);
     Bit32u get_capabilities();
+    void commit_changes(void);
 
   private:
     bx_bool sector2CHS(Bit32u spos, mbr_chs_t *chs);
@@ -293,7 +294,6 @@ class vvfat_image_t// : public device_image_t
     bx_bool write_file(const char *path, direntry_t *entry, bx_bool create);
     direntry_t* read_direntry(Bit8u *buffer, char *filename);
     void parse_directory(const char *path, Bit32u start_cluster);
-    void commit_changes(void);
     void close_current_file(void);
     int open_file(mapping_t* mapping);
     int find_mapping_for_cluster_aux(int cluster_num, int index1, int index2);
