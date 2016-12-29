@@ -1,26 +1,20 @@
-TARGET		:= busexmp loopback
-LIBOBJS 	:= buse.o
-OBJS		:= $(TARGET:=.o) $(LIBOBJS)
-STATIC_LIB	:= libbuse.a
+CPPFILES=$(wildcard *.cc)
+CFILES=$(wildcard *.c)
+OBJECTS=$(patsubst %.cc, %.o, $(CPPFILES)) $(patsubst %.c, %.o, $(CFILES))
 
-CC		:= /usr/bin/gcc
-CFLAGS		:= -g -pedantic -Wall -Wextra -std=c99
-LDFLAGS		:= -L. -lbuse
+LDFLAGS+=-lm -static
+EXECUTABLE=vfatbuse
 
-.PHONY: all clean
-all: $(TARGET)
+all: $(EXECUTABLE)
 
-$(TARGET): %: %.o $(STATIC_LIB)
-	$(CC) -o $@ $< $(LDFLAGS)
+$(EXECUTABLE): $(OBJECTS)
+	$(CXX) -o $@ $^ $(CPPFLAGS) $(LDFLAGS)
 
-$(TARGET:=.o): %.o: %.c buse.h
-	$(CC) $(CFLAGS) -o $@ -c $<
+%.o: %.cpp
+	$(CXX) -MMD -MP $(CPPFLAGS) -o $@ -c $<
 
-$(STATIC_LIB): $(LIBOBJS)
-	ar rcu $(STATIC_LIB) $(LIBOBJS)
-
-$(LIBOBJS): %.o: %.c
-	$(CC) $(CFLAGS) -o $@ -c $<
+DEPS=$(OBJECTS:.o=.d)
+-include $(DEPS)
 
 clean:
-	rm -f $(TARGET) $(OBJS) $(STATIC_LIB)
+	rm -f $(EXECUTABLE) $(OBJECTS) $(DEPS)
