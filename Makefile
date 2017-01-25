@@ -2,7 +2,7 @@ CPPFILES=$(wildcard *.cc)
 CFILES=$(wildcard *.c)
 OBJECTS=$(patsubst %.cc, %.o, $(CPPFILES)) $(patsubst %.c, %.o, $(CFILES))
 
-LDFLAGS+=-lm -static
+LDFLAGS+=-lm
 EXECUTABLE=vfatbuse
 
 all: $(EXECUTABLE)

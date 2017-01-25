@@ -181,7 +181,7 @@ int buse_main(const char* dev_file, const struct buse_operations *aop, void *use
     case NBD_CMD_WRITE:
       fprintf(stderr, "Request for write of size %d\n", len);
       chunk = malloc(len);
-      read_all(sk, chunk, len);
+      read_all(sk, (char*)chunk, len);
       if (aop->write) {
         reply.error = aop->write(chunk, len, from, userdata);
       } else {

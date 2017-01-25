@@ -47,6 +47,7 @@ static int xmp_write(const void *buf, u_int32_t len, u_int64_t offset, void *use
     vvfat_image_t *image = (vvfat_image_t*)userdata;
     image->lseek(offset, SEEK_SET);
     int ret = image->write(buf, len);
+    image->commit_changes();
 
     if (ret < 0) {
         return ret;
@@ -57,8 +58,9 @@ static int xmp_write(const void *buf, u_int32_t len, u_int64_t offset, void *use
 
 static void xmp_disc(void *userdata)
 {
-  (void)(userdata);
   fprintf(stderr, "Received a disconnect request.\n");
+  vvfat_image_t *image = (vvfat_image_t*)userdata;
+  image->commit_changes();
 }
 
 static int xmp_flush(void *userdata)
@@ -85,8 +87,9 @@ static struct buse_operations aop = {
   .disc = xmp_disc,
   .flush = xmp_flush,
   .trim = xmp_trim,
-  .size = 128 * 1024 * 1024,
+  .size = 528482304,
 };
+  //.size = 1024 * 1024 * 1024,
 
 int main(int argc, char *argv[])
 {
@@ -99,7 +102,7 @@ int main(int argc, char *argv[])
         "run example from root.\n", argv[0]);
     return 1;
   }
-  vvfat_image_t image(aop.size, NULL);
+  vvfat_image_t image(aop.size, "zg");
   if (image.open(argv[2]) != 0) {
       fprintf(stderr, "Failed to open directory %s\n", argv[2]);
       return 1;

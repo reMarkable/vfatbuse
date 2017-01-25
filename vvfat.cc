@@ -76,7 +76,7 @@ int hdimage_open_file(const char *pathname, int flags, Bit64u *fsize, time_t *mt
   if (fsize != NULL) {
     struct stat stat_buf;
     if (fstat(fd, &stat_buf)) {
-      printf("fstat() returns error!");
+      printf("fstat() returns error!\n");
       return -1;
     }
     if (S_ISBLK(stat_buf.st_mode)) { // Is this a special device file (e.g. /dev/sde) ?
@@ -163,12 +163,12 @@ redolog_t::redolog_t()
 
 void redolog_t::print_header()
 {
-  printf("redolog : Standard Header : magic='%s', type='%s', subtype='%s', version = %d.%d",
+  printf("redolog : Standard Header : magic='%s', type='%s', subtype='%s', version = %d.%d\n",
            header.standard.magic, header.standard.type, header.standard.subtype,
            dtoh32(header.standard.version)/0x10000,
            dtoh32(header.standard.version)%0x10000);
   if (dtoh32(header.standard.version) == STANDARD_HEADER_VERSION) {
-    printf("redolog : Specific Header : #entries=%d, bitmap size=%d, exent size = %d disk size = " FMT_LL "d",
+    printf("redolog : Specific Header : #entries=%d, bitmap size=%d, exent size = %d disk size = " FMT_LL "d\n",
              dtoh32(header.specific.catalog),
              dtoh32(header.specific.bitmap),
              dtoh32(header.specific.extent),
@@ -176,7 +176,7 @@ void redolog_t::print_header()
   } else if (dtoh32(header.standard.version) == STANDARD_HEADER_V1) {
     redolog_header_v1_t header_v1;
     memcpy(&header_v1, &header, STANDARD_HEADER_SIZE);
-    printf("redolog : Specific Header : #entries=%d, bitmap size=%d, exent size = %d disk size = " FMT_LL "d",
+    printf("redolog : Specific Header : #entries=%d, bitmap size=%d, exent size = %d disk size = " FMT_LL "d\n",
              dtoh32(header_v1.specific.catalog),
              dtoh32(header_v1.specific.bitmap),
              dtoh32(header_v1.specific.extent),
@@ -226,7 +226,7 @@ int redolog_t::make_header(const char* type, Bit64u size)
   bitmap = (Bit8u*)malloc(dtoh32(header.specific.bitmap));
 
   if ((catalog == NULL) || (bitmap==NULL))
-    printf("redolog : could not malloc catalog or bitmap");
+    printf("redolog : could not malloc catalog or bitmap\n");
 
   for (Bit32u i=0; i<dtoh32(header.specific.catalog); i++)
     catalog[i] = htod32(REDOLOG_PAGE_NOT_ALLOCATED);
@@ -234,15 +234,15 @@ int redolog_t::make_header(const char* type, Bit64u size)
   bitmap_blocks = 1 + (dtoh32(header.specific.bitmap) - 1) / 512;
   extent_blocks = 1 + (dtoh32(header.specific.extent) - 1) / 512;
 
-  printf("redolog : each bitmap is %d blocks", bitmap_blocks);
-  printf("redolog : each extent is %d blocks", extent_blocks);
+  printf("redolog : each bitmap is %d blocks\n", bitmap_blocks);
+  printf("redolog : each extent is %d blocks\n", extent_blocks);
 
   return 0;
 }
 
 int redolog_t::create(const char* filename, const char* type, Bit64u size)
 {
-  printf("redolog : creating redolog %s", filename);
+  printf("redolog : creating redolog %s\n", filename);
 
   int filedes = ::open(filename, O_RDWR | O_CREAT | O_TRUNC
 #ifdef O_BINARY
@@ -289,26 +289,26 @@ int redolog_t::open(const char* filename, const char *type, int flags)
 
   fd = hdimage_open_file(filename, flags, &imgsize, &mtime);
   if (fd < 0) {
-    printf("redolog : could not open image %s", filename);
+    printf("redolog : could not open image %s\n", filename);
     // open failed.
     return -1;
   }
-  printf("redolog : open image %s", filename);
+  printf("redolog : open image %s\n", filename);
 
   int res = check_format(fd, type);
   if (res != HDIMAGE_FORMAT_OK) {
     switch (res) {
       case HDIMAGE_READ_ERROR:
-        printf("redolog : could not read header");
+        printf("redolog : could not read header\n");
         break;
       case HDIMAGE_NO_SIGNATURE:
-        printf("redolog : Bad header magic");
+        printf("redolog : Bad header magic\n");
         break;
       case HDIMAGE_TYPE_ERROR:
-        printf("redolog : Bad header type or subtype");
+        printf("redolog : Bad header type or subtype\n");
         break;
       case HDIMAGE_VERSION_ERROR:
-        printf("redolog : Bad header version");
+        printf("redolog : Bad header version\n");
         break;
     }
     return -1;
@@ -336,7 +336,7 @@ int redolog_t::open(const char* filename, const char *type, int flags)
 
   if (res !=  (ssize_t)(dtoh32(header.specific.catalog) * sizeof(Bit32u)))
   {
-    printf("redolog : could not read catalog %d=%d",res, dtoh32(header.specific.catalog));
+    printf("redolog : could not read catalog %d=%d\n",res, dtoh32(header.specific.catalog));
     return -1;
   }
 
@@ -350,7 +350,7 @@ int redolog_t::open(const char* filename, const char *type, int flags)
         extent_next = dtoh32(catalog[i]) + 1;
     }
   }
-  printf("redolog : next extent will be at index %d",extent_next);
+  printf("redolog : next extent will be at index %d\n",extent_next);
 
   // memory used for storing bitmaps
   bitmap = (Bit8u *)malloc(dtoh32(header.specific.bitmap));
@@ -358,8 +358,8 @@ int redolog_t::open(const char* filename, const char *type, int flags)
   bitmap_blocks = 1 + (dtoh32(header.specific.bitmap) - 1) / 512;
   extent_blocks = 1 + (dtoh32(header.specific.extent) - 1) / 512;
 
-  printf("redolog : each bitmap is %d blocks", bitmap_blocks);
-  printf("redolog : each extent is %d blocks", extent_blocks);
+  printf("redolog : each bitmap is %d blocks\n", bitmap_blocks);
+  printf("redolog : each extent is %d blocks\n", extent_blocks);
 
   imagepos = 0;
   bitmap_update = 1;
@@ -400,7 +400,7 @@ bx_bool redolog_t::set_timestamp(Bit32u timestamp)
 Bit64s redolog_t::lseek(Bit64s offset, int whence)
 {
   if ((offset % 512) != 0) {
-    printf("redolog : lseek() offset not multiple of 512");
+    printf("redolog : lseek() offset not multiple of 512\n");
     return -1;
   }
   if (whence == SEEK_SET) {
@@ -408,11 +408,11 @@ Bit64s redolog_t::lseek(Bit64s offset, int whence)
   } else if (whence == SEEK_CUR) {
     imagepos += offset;
   } else {
-    printf("redolog: lseek() mode not supported yet");
+    printf("redolog: lseek() mode not supported yet\n");
     return -1;
   }
   if (imagepos > (Bit64s)dtoh64(header.specific.disk)) {
-    printf("redolog : lseek() to byte %ld failed", (long)offset);
+    printf("redolog : lseek() to byte %ld failed\n", (long)offset);
     return -1;
   }
 
@@ -423,7 +423,7 @@ Bit64s redolog_t::lseek(Bit64s offset, int whence)
   }
   extent_offset = (Bit32u)((imagepos % dtoh32(header.specific.extent)) / 512);
 
-  printf("redolog : lseeking extent index %d, offset %d",extent_index, extent_offset);
+  //printf("redolog : lseeking extent index %d, offset %d\n",extent_index, extent_offset);
 
   return imagepos;
 }
@@ -434,11 +434,11 @@ ssize_t redolog_t::read(void* buf, size_t count)
   ssize_t ret;
 
   if (count != 512) {
-    printf("redolog : read() with count not 512");
+    printf("redolog : read() with count not 512\n");
     return -1;
   }
 
-  printf("redolog : reading index %d, mapping to %d", extent_index, dtoh32(catalog[extent_index]));
+  //printf("redolog : reading index %d, mapping to %d\n", extent_index, dtoh32(catalog[extent_index]));
 
   if (dtoh32(catalog[extent_index]) == REDOLOG_PAGE_NOT_ALLOCATED) {
     // page not allocated
@@ -449,19 +449,19 @@ ssize_t redolog_t::read(void* buf, size_t count)
   bitmap_offset += (Bit64s)512 * dtoh32(catalog[extent_index]) * (extent_blocks + bitmap_blocks);
   block_offset    = bitmap_offset + ((Bit64s)512 * (bitmap_blocks + extent_offset));
 
-  printf("redolog : bitmap offset is %x", (Bit32u)bitmap_offset);
-  printf("redolog : block offset is %x", (Bit32u)block_offset);
+  printf("redolog : bitmap offset is %x\n", (Bit32u)bitmap_offset);
+  printf("redolog : block offset is %x\n", (Bit32u)block_offset);
 
   if (bitmap_update) {
     if (bx_read_image(fd, (off_t)bitmap_offset, bitmap,  dtoh32(header.specific.bitmap)) != (ssize_t)dtoh32(header.specific.bitmap)) {
-      printf("redolog : failed to read bitmap for extent %d", extent_index);
+      printf("redolog : failed to read bitmap for extent %d\n", extent_index);
       return -1;
     }
     bitmap_update = 0;
   }
 
   if (((bitmap[extent_offset/8] >> (extent_offset%8)) & 0x01) == 0x00) {
-    printf("read not in redolog");
+    printf("read not in redolog\n");
 
     // bitmap says block not in redolog
     return 0;
@@ -481,19 +481,19 @@ ssize_t redolog_t::write(const void* buf, size_t count)
   bx_bool update_catalog = 0;
 
   if (count != 512) {
-    printf("redolog : write() with count not 512");
+    printf("redolog : write() with count not 512\n");
     return -1;
   }
 
-  printf("redolog : writing index %d, mapping to %d", extent_index, dtoh32(catalog[extent_index]));
+  //printf("redolog : writing index %d, mapping to %d\n", extent_index, dtoh32(catalog[extent_index]));
 
   if (dtoh32(catalog[extent_index]) == REDOLOG_PAGE_NOT_ALLOCATED) {
     if (extent_next >= dtoh32(header.specific.catalog)) {
-      printf("redolog : can't allocate new extent... catalog is full");
+      printf("redolog : can't allocate new extent... catalog is full\n");
       return -1;
     }
 
-    printf("redolog : allocating new extent at %d", extent_next);
+    printf("redolog : allocating new extent at %d\n", extent_next);
 
     // Extent not allocated, allocate new
     catalog[extent_index] = htod32(extent_next);
@@ -524,8 +524,8 @@ ssize_t redolog_t::write(const void* buf, size_t count)
   bitmap_offset += (Bit64s)512 * dtoh32(catalog[extent_index]) * (extent_blocks + bitmap_blocks);
   block_offset    = bitmap_offset + ((Bit64s)512 * (bitmap_blocks + extent_offset));
 
-  printf("redolog : bitmap offset is %x", (Bit32u)bitmap_offset);
-  printf("redolog : block offset is %x", (Bit32u)block_offset);
+  printf("redolog : bitmap offset is %x\n", (Bit32u)bitmap_offset);
+  printf("redolog : block offset is %x\n", (Bit32u)block_offset);
 
   // Write block
   written = bx_write_image(fd, (off_t)block_offset, (void*)buf, count);
@@ -533,7 +533,7 @@ ssize_t redolog_t::write(const void* buf, size_t count)
   // Write bitmap
   if (bitmap_update) {
     if (bx_read_image(fd, (off_t)bitmap_offset, bitmap,  dtoh32(header.specific.bitmap)) != (ssize_t)dtoh32(header.specific.bitmap)) {
-      printf("redolog : failed to read bitmap for extent %d", extent_index);
+      printf("redolog : failed to read bitmap for extent %d\n", extent_index);
       return 0;
     }
     bitmap_update = 0;
@@ -550,7 +550,7 @@ ssize_t redolog_t::write(const void* buf, size_t count)
     // FIXME if mmap
     catalog_offset  = (Bit64s)STANDARD_HEADER_SIZE + (extent_index * sizeof(Bit32u));
 
-    printf("redolog : writing catalog at offset %x", (Bit32u)catalog_offset);
+    printf("redolog : writing catalog at offset %x\n", (Bit32u)catalog_offset);
 
     bx_write_image(fd, (off_t)catalog_offset, &catalog[extent_index], sizeof(Bit32u));
   }
@@ -594,10 +594,10 @@ int redolog_t::commit(device_image_t *base_image)
   Bit32u i;
   Bit8u buffer[512];
 
-  printf("\nCommitting changes to base image file: [  0%%]");
+  printf("\nCommitting changes to base image file: [  0%%]\n");
 
   for (i = 0; i < dtoh32(header.specific.catalog); i++) {
-    printf("\x8\x8\x8\x8\x8%3d%%]", (i+1)*100/dtoh32(header.specific.catalog));
+    printf("\x8\x8\x8\x8\x8%3d%%]\n", (i+1)*100/dtoh32(header.specific.catalog));
     fflush(stdout);
 
     if (dtoh32(catalog[i]) != REDOLOG_PAGE_NOT_ALLOCATED) {
@@ -865,7 +865,7 @@ infosector_t;
 vvfat_image_t::vvfat_image_t(Bit64u size, const char* _redolog_name)
 {
   if (sizeof(bootsector_t) != 512) {
-    printf("system error: invalid bootsector structure size");
+    printf("system error: invalid bootsector structure size\n");
   }
 
   first_sectors = new Bit8u[0xc000];
@@ -878,6 +878,7 @@ vvfat_image_t::vvfat_image_t(Bit64u size, const char* _redolog_name)
   if (_redolog_name != NULL) {
     if ((strlen(_redolog_name) > 0) && (strcmp(_redolog_name,"none") != 0)) {
       redolog_name = strdup(_redolog_name);
+      printf("redolog name: %s\n", redolog_name);
     }
   }
 }
@@ -1185,7 +1186,7 @@ int vvfat_image_t::read_directory(int mapping_index)
   // actually read the directory, and allocate the mappings
   while ((entry=readdir(dir))) {
     if ((first_cluster == 0) && (directory.next >= (Bit16u)(root_entries - 1))) {
-      printf("Too many entries in root directory, using only %d", count);
+      printf("Too many entries in root directory, using only %d\n", count);
       closedir(dir);
       return -2;
     }
@@ -1238,7 +1239,7 @@ int vvfat_image_t::read_directory(int mapping_index)
     else
       direntry->begin = 0; // do that later
     if (st.st_size > 0x7fffffff) {
-      printf("File '%s' is larger than 2GB", buffer);
+      printf("File '%s' is larger than 2GB\n", buffer);
       free(buffer);
       closedir(dir);
       return -3;
@@ -1388,7 +1389,7 @@ int vvfat_image_t::init_directories(const char* dirname)
     if (mapping->mode & MODE_DIRECTORY) {
       mapping->begin = cluster;
       if (read_directory(i)) {
-        printf("Could not read directory '%s'", mapping->path);
+        printf("Could not read directory '%s'\n", mapping->path);
         return -1;
       }
       mapping = (mapping_t*)array_get(&this->mapping, i);
@@ -1414,7 +1415,7 @@ int vvfat_image_t::init_directories(const char* dirname)
 
     if (cluster >= (cluster_count + 2)) {
       sprintf(size_txt, "%d", (sector_count >> 11));
-      printf("Directory does not fit in FAT%d (capacity %s MB)",
+      printf("Directory does not fit in FAT%d (capacity %s MB)\n",
                 fat_type,
                 (fat_type == 12) ? (sector_count == 2880) ? "1.44":"2.88"
                 : size_txt);
@@ -1612,7 +1613,7 @@ int vvfat_image_t::open(const char* dirname)
       } else if ((partition->fs_type == 0x0b) || (partition->fs_type == 0x0c)) {
         fat_type = 32;
       } else {
-        printf("MBR file: unsupported FS type = 0x%02x", partition->fs_type);
+        printf("MBR file: unsupported FS type = 0x%02x\n", partition->fs_type);
       }
       if (fat_type != 0) {
         sector_count = partition->start_sector_long + partition->length_sector_long;
@@ -1626,7 +1627,7 @@ int vvfat_image_t::open(const char* dirname)
         offset_to_bootsector = spt;
         memcpy(&first_sectors[0], sector_buffer, 0x200);
         use_mbr_file = 1;
-        printf("VVFAT: using MBR from file");
+        printf("VVFAT: using MBR from file\n");
       }
     }
   }
@@ -1655,7 +1656,7 @@ int vvfat_image_t::open(const char* dirname)
       } else {
         memcpy(ftype, bs->u.fat16.fat_type, 8);
         ftype[8] = 0;
-        printf("boot sector file: unsupported FS type = '%s'", ftype);
+        printf("boot sector file: unsupported FS type = '%s'\n", ftype);
         return -1;
       }
       if ((fat_type != 0) && (bs->number_of_fats == 2)) {
@@ -1677,7 +1678,7 @@ int vvfat_image_t::open(const char* dirname)
       root_entries = bs->root_entries;
       first_cluster_of_root_dir = (fat_type != 32) ? 0 : bs->u.fat32.first_cluster_of_root_dir;
       memcpy(&first_sectors[offset_to_bootsector * 0x200], sector_buffer, 0x200);
-      printf("VVFAT: using boot sector from file");
+      printf("VVFAT: using boot sector from file\n");
     }
   }
 
@@ -1769,11 +1770,11 @@ int vvfat_image_t::open(const char* dirname)
   filedes = mkstemp(redolog_temp);
 
   if (filedes < 0) {
-    printf("Can't create volatile redolog '%s'", redolog_temp);
+    printf("Can't create volatile redolog '%s'\n", redolog_temp);
     return -1;
   }
   if (redolog->create(filedes, REDOLOG_SUBTYPE_VOLATILE, hd_size) < 0) {
-    printf("Can't create volatile redolog '%s'", redolog_temp);
+    printf("Can't create volatile redolog '%s'\n", redolog_temp);
     return -1;
   }
 
@@ -1783,7 +1784,7 @@ int vvfat_image_t::open(const char* dirname)
   vvfat_modified = 0;
   vvfat_count++;
 
-  printf("'vvfat' disk opened: directory is '%s', redolog is '%s'", dirname, redolog_temp);
+  printf("'vvfat' disk opened: directory is '%s', redolog is '%s'\n", dirname, redolog_temp);
 
   return 0;
 }
@@ -1911,7 +1912,7 @@ bx_bool vvfat_image_t::write_file(const char *path, direntry_t *entry, bx_bool c
     }
     next = fat_get_next(cur);
     if ((next >= rsvd_clusters) && (next < bad_cluster)) {
-      printf("reserved clusters not supported");
+      printf("reserved clusters not supported\n");
     }
   } while (next < rsvd_clusters);
   ::close(fd);
@@ -2140,7 +2141,7 @@ Bit64s vvfat_image_t::lseek(Bit64s offset, int whence)
   } else if (whence == SEEK_CUR) {
     sector_num += (Bit32u)(offset / 512);
   } else {
-    printf("lseek: mode not supported yet");
+    printf("lseek: mode not supported yet\n");
     return -1;
   }
   if (sector_num >= sector_count)
@@ -2329,18 +2330,22 @@ ssize_t vvfat_image_t::write(const void* buf, size_t count)
   while (scount-- > 0) {
     update_imagepos = 1;
     if (sector_num == 0) {
+      printf("VVFAT write mbr: sector=%d, count=%d\n", sector_num, scount);
       // allow writing to MBR (except partition table)
       memcpy(&first_sectors[0], cbuf, 0x1b8);
     } else if (sector_num == offset_to_bootsector) {
+      printf("VVFAT write boot sector: sector=%d, count=%d\n", sector_num, scount);
       // allow writing to boot sector
       memcpy(&first_sectors[sector_num * 0x200], cbuf, 0x200);
     } else if ((fat_type == 32) && (sector_num == (offset_to_bootsector + 1))) {
+      printf("VVFAT write info sector: sector=%d, count=%d\n", sector_num, scount);
       // allow writing to FS info sector
       memcpy(&first_sectors[sector_num * 0x200], cbuf, 0x200);
     } else if (sector_num < (offset_to_bootsector + reserved_sectors)) {
-      printf("VVFAT write ignored: sector=%d, count=%d", sector_num, scount);
-      ret = -1;
+      printf("VVFAT write ignored: sector=%d, count=%d\n", sector_num, scount);
+      //ret = -1;
     } else {
+      printf("VVFAT write: sector=%d, count=%d\n", sector_num, scount);
       vvfat_modified = 1;
       update_imagepos = 0;
       ret = redolog->write(cbuf, 0x200);
